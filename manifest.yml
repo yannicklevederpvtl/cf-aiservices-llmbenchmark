@@ -2,7 +2,7 @@
 # Cloud Foundry manifest for LLM Benchmark Application
 # Multi-buildpack configuration: Go backend + Staticfile frontend
 applications:
-  - name: cf-llm-benchmark
+  - name: cf-aiservices-llmbenchmark
     memory: 512M
     disk_quota: 1G
     instances: 1
