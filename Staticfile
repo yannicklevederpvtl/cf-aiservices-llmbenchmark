@@ -1,0 +1,44 @@
+# Staticfile configuration for Cloud Foundry Staticfile buildpack
+# This file configures how the Staticfile buildpack serves static files
+
+# Root directory for static files (relative to app root)
+root: client/dist
+
+# Enable directory browsing (set to false for security)
+directory: false
+
+# Enable pushstate routing for SPA (Single Page Application)
+pushstate: true
+
+# Force HTTPS redirects
+force_https: true
+
+# Custom error pages (optional)
+# error_pages:
+#   404: /404.html
+#   500: /500.html
+
+# Headers configuration
+headers:
+  # Security headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: "1; mode=block"
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Cache control for assets
+  /assets/*:
+    Cache-Control: "public, max-age=31536000"
+  
+  # Cache control for HTML files
+  /*.html:
+    Cache-Control: "public, max-age=0, must-revalidate"
+  
+  # Cache control for other static files
+  /*:
+    Cache-Control: "public, max-age=3600"
+
+# MIME types (optional - buildpack has defaults)
+# mime_types:
+#   .json: application/json
+#   .wasm: application/wasm

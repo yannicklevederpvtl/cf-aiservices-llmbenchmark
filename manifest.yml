@@ -1,0 +1,121 @@
+---
+# Cloud Foundry manifest for LLM Benchmark Application
+# Multi-buildpack configuration: Go backend + Staticfile frontend
+applications:
+  - name: cf-llm-benchmark
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    path: llmapibenchmark
+    
+    # Single buildpack configuration - Go server serves both API and static files
+    buildpacks:
+      - go_buildpack
+    
+    # Start command for the Go server
+    command: llmapibenchmark
+    
+    # Environment variables
+    env:
+      # Application configuration
+      GIN_MODE: release
+      
+      # TLS configuration for external API calls
+      INSECURE_SKIP_TLS_VERIFY: "true"
+      
+      # CORS configuration for production
+      CORS_ORIGIN: "*"
+      
+      # Logging configuration
+      LOG_LEVEL: info
+      
+      # Fallback environment variables (used when VCAP_SERVICES not available)
+      # These will be overridden by service bindings when available
+      BASE_URL: ""
+      API_KEY: ""
+      MODELS: ""
+      
+      # Model-specific environment variables (fallback)
+      MODEL1_NAME: ""
+      MODEL1_BASE_URL: ""
+      MODEL1_API_KEY: ""
+      MODEL2_NAME: ""
+      MODEL2_BASE_URL: ""
+      MODEL2_API_KEY: ""
+    
+    # Service bindings for GenAI services (added by deploy.sh script)
+    # services:
+    #   - your-genai-service-1
+    #   - your-genai-service-2
+    
+    # Health check configuration
+    health-check-type: http
+    health-check-http-endpoint: /api/health
+    health-check-timeout: 60
+    
+    # Application timeout
+    timeout: 180
+    
+    # Route configuration (optional - CF will auto-generate if not specified)
+    # routes:
+    #   - route: llm-benchmark.your-cf-domain.com
+    
+    # Buildpack-specific configuration
+    buildpack_env:
+      # Go buildpack configuration
+      GO_VERSION: "1.24"
+      GO_BUILD_FLAGS: "-ldflags '-s -w'"
+      
+      # Staticfile buildpack configuration
+      FORCE_HTTPS: "true"
+      ENABLE_DIRECTORY_BROWSING: "false"
+      PUSHSTATE: "true"
+      ROOT: "client/dist"
+      
+    # Stack (optional - uses default if not specified)
+    # stack: cflinuxfs4
+    
+    # Domain (optional - uses default if not specified)
+    # domain: cfapps.io
+    
+    # No-route (set to true if this is a worker app)
+    no-route: false
+    
+    # Random route (set to true to generate random route)
+    random-route: false
+
+---
+# Additional configuration notes:
+# 
+# 1. Service Bindings:
+#    - Bind GenAI services using: cf bind-service llm-benchmark-app your-genai-service
+#    - The application will automatically discover models from VCAP_SERVICES
+#    - Fallback to environment variables if no services are bound
+#
+# 2. TLS Configuration:
+#    - INSECURE_SKIP_TLS_VERIFY=true allows external API calls to services with self-signed certs
+#    - CF provides valid certificates for the application domain
+#
+# 3. Multi-buildpack Setup:
+#    - Go buildpack compiles the backend binary
+#    - Staticfile buildpack serves the Vue.js frontend from client/dist
+#    - The Go server handles API routes and serves static files
+#
+# 4. Health Checks:
+#    - /api/health endpoint for CF health monitoring
+#    - 60-second timeout for long-running operations
+#
+# 5. Memory and Scaling:
+#    - 512M memory should be sufficient for most workloads
+#    - Can be increased if needed for large benchmark operations
+#    - Multiple instances can be deployed for high availability
+#
+# 6. Deployment Commands:
+#    - cf push (deploy with manifest)
+#    - cf push --no-start (deploy without starting)
+#    - cf start (start the application)
+#    - cf logs llm-benchmark-app (view logs)
+# Services section removed - deploy.sh script will add services dynamically
+services:
+  - tanzu-qwen3-coder-v1025
+  - tanzu-gpt-multi-model-v1025

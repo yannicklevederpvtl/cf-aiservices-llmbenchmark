@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Build All Platforms
+        run: |
+          # amd64
+          go build -ldflags "-s -w" -o llmapibenchmark_linux_amd64 ./cmd/
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o llmapibenchmark_windows_amd64.exe ./cmd/
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o llmapibenchmark_darwin_amd64 ./cmd/
+          # arm64
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -o llmapibenchmark_linux_arm64 ./cmd/
+          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags "-s -w" -o llmapibenchmark_windows_arm64.exe ./cmd/
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o llmapibenchmark_darwin_arm64 ./cmd/
+
+      - name: Archive
+        run: |
+          tar -czvf llmapibenchmark_linux_amd64.tar.gz llmapibenchmark_linux_amd64
+          zip llmapibenchmark_windows_amd64.zip llmapibenchmark_windows_amd64.exe
+          tar -czvf llmapibenchmark_darwin_amd64.tar.gz llmapibenchmark_darwin_amd64
+          tar -czvf llmapibenchmark_linux_arm64.tar.gz llmapibenchmark_linux_arm64
+          zip llmapibenchmark_windows_arm64.zip llmapibenchmark_windows_arm64.exe
+          tar -czvf llmapibenchmark_darwin_arm64.tar.gz llmapibenchmark_darwin_arm64
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: llmapibenchmark-artifacts
+          path: |
+            llmapibenchmark_linux_amd64.tar.gz
+            llmapibenchmark_windows_amd64.zip
+            llmapibenchmark_darwin_amd64.tar.gz
+            llmapibenchmark_linux_arm64.tar.gz
+            llmapibenchmark_windows_arm64.zip
+            llmapibenchmark_darwin_arm64.tar.gz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: llmapibenchmark-artifacts
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.ref_name }} artifacts/*

@@ -1,0 +1,6 @@
+## result
+**/API_Throughput_*.md
+
+## build
+llmapibenchmark_linux_amd64
+llmapibenchmark_windows_amd64.exe
